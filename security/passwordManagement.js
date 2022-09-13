@@ -10,7 +10,7 @@ const encrypt = async (password) => {
 
 }
 
-
+// Vérifier le mdp face au hash et salt en db
 const checkPassword = (password, hash, salt) => {
     return passwordVerify(password, hash, salt)
 }

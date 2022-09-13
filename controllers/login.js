@@ -5,7 +5,7 @@ const controller = {
     post: async (req, res) => {
 
         try {
-            const response = await login(req.body.user);
+            const response = await login(req.body);
             res.send(response)
         } catch (error) {
             res.status(401)

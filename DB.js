@@ -9,10 +9,10 @@ dotenv.config()
 // Pour se prémunir des injections SQL, on utilise uniquement des prepared statements
 // qui permettent de controller les requêtes SQL, contrairement à un modèle où l'on concatènerait
 // les valeurs dans une seul et même chaîne de charactères.
-
 class DB {
 
     constructor () {
+        console.log('DB init')
         this.client = new Client({
             password: process.env.PG_PASSWORD,
             database: process.env.PG_DB,
@@ -21,13 +21,14 @@ class DB {
             port: process.env.PG_PORT
         })
 
+        this.tables = ['utilisateurs', 'admins', 'partenaires', 'structures', 'permissions']
+
         this.client.connect()
         .then(res => {
             console.log(`-- ${new Date().toLocaleString()} :: CONNEXION DB ETABLIE`)
             // Quand le serveur s'initialise, on vérifie que les tables existent. Si non, on utilise la fonction create() pour
             // générer les tables. Cela devrait les créer uniquement lors du premier démarage sur le serveur ou bien en changeant de serveur
             // A noter que si l'on recréer les tables sur un nouveau serveur, on peut toujours importer la bdd déjà existante depuis le serveur précédent
-            this.tables = ['utilisateurs', 'admins', 'partenaires', 'structures', 'permissions']
             this.tablesModels = SETTINGS.tablesModels
 
             this.tables.forEach(async (table) => {
@@ -37,7 +38,7 @@ class DB {
                     
                     if (createRes.success && table === 'admins') {
                         const hashSalt = await encrypt(process.env.DEFAULT_ADMIN_MDP)
-                        this.insert('utilisateurs', ['Admin', 'adminus', process.env.DEFAULT_ADMIN_EMAIL, hashSalt.hash, hashSalt.salt, 'admin', 1])
+                        this.insert('utilisateurs', ['Admin', 'adminus', process.env.DEFAULT_ADMIN_EMAIL, hashSalt.hash, hashSalt.salt, 'admin', 1, 'actif'])
                         .then(res => {
                             this.insert('admins', [res.id, 'Admin', 'adminus', process.env.DEFAULT_ADMIN_EMAIL, hashSalt.hash, hashSalt.salt, 1])
                         })
@@ -100,7 +101,7 @@ class DB {
 
         if (this.tables.includes(tableName)) {
 
-            let queryText = 'select'
+            let queryText = 'SELECT'
             const queryValues = []
             
             if (typeof columns === "undefined" || columns.length === 0) {
@@ -111,31 +112,16 @@ class DB {
 
             if (typeof filters === 'object') {
                 if (typeof filters.where === 'object') {
-                    queryText += ' WHERE'
-                    if (Array.isArray(filters.where)) {
-                        console.log('is array')
-                        for (let i = 0; i < filters.where.length; i++) {
-                            const whereClause = filters.where[i]
-                            if (whereClause.compare === '<' || whereClause.compare === '<=' || whereClause.compare === '=' 
-                                || whereClause.compare === '>=' || whereClause.compare === '>') {
-
-                                queryText += ` $${queryValues.length+1} ${whereClause.compare} $${queryValues.length+2}`
-                                queryValues.push(whereClause.field)
-                                queryValues.push(whereClause.value)
-
-                            } else {
-                                return { success: false, reason: `Unknown comparator '${whereClause.compare}' in where clause` }
-                            }
-                        }
-                    } else {
-                        if (filters.where.compare === '<' || filters.where.compare === '<=' || filters.where.compare === '=' 
-                                || filters.where.compare === '>=' || filters.where.compare === '>') {
-                            queryText += ` $${queryValues.length+1} ${filters.where.compare} $${queryValues.length+2}`
-                            queryValues.push(filters.where.field)
-                            queryValues.push(filters.where.value)
-                        }
+                    queryText += ` ${filters.where.string}`
+                    
+                    for (let i = 0; i < filters.where.values.length; i++) {
+                        queryValues.push(filters.where.values[i])
                     }
                 }
+            }
+
+            if (verbose) {
+                console.log(queryText, queryValues)
             }
 
             return this.client.query({
@@ -143,7 +129,7 @@ class DB {
                 values: queryValues
             })
             .then(res => {
-                return { success: true }
+                return { success: true, res }
             })
             .catch(err => {
                 return { success: false, reason: err.routine }
@@ -174,6 +160,10 @@ class DB {
                     queryText += ', '
                 }
             }
+
+            if (verbose) {
+                console.log(queryText)
+            }
             
             return this.client.query({
                 text: queryText,
@@ -188,10 +178,45 @@ class DB {
 
     }
 
-    edit = async (tableName, columns, values, filters, verbose=false) => {
+    // Modifier une ligne (une ou plusieurs colonnes) dans une table
+    // C'est le service appellant cette fonction qui spécifira conditionnellement
+    // les colonnes et les values à modifier. Pareil pour le where
+    edit = async (tableName, columns, values, where, verbose=false) => {
+
+        if (this.tables.includes(tableName)) {
+            
+            let queryText = `UPDATE ${tableName} SET `
+            const queryValues = []
+
+            for (let i = 0; i < columns.length; i++) {
+                queryText += `${columns[i]} = $${i+1}`
+                queryValues.push(values[i])
+
+                if (i+1 < columns.length) {
+                    queryText += ', '
+                }
+            }
+
+            queryText += ` ${where}`
+
+            if (verbose) {
+                console.log(queryText)
+            }
+
+            return this.client.query({
+                text: queryText,
+                values: queryValues
+            })
+            .then(res => { return { success: true }})
+            .catch(err => { return { success: false, reason: err }})
+
+        } else {
+            return { success: false, reason: 'unknown tableName' }
+        }
 
     }
 
 }
 
-export default DB
+const db = new DB()
+export default db

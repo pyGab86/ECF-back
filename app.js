@@ -3,6 +3,9 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import bodyParser from 'body-parser'
 
+// Routes
+import login from './routes/login.js'
+
 dotenv.config()
 
 const port = process.env.PORT || 8080
@@ -24,14 +27,9 @@ app.use(
 app.use(bodyParser.json())
 
 // Autoriser les CORS requests
-app.use(cors({
-    origin: '*',
-    optionsSuccessStatus: 200
-}))
+app.use(cors())
 
-app.use('/', (req, res) => {
-    res.send('Hello world!')
-})
+app.use('/', login)
 
 app.listen(port, () => {
     console.log(`Application tourne sur port ${ port }`);

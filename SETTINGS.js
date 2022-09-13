@@ -8,7 +8,8 @@ const SETTINGS = {
             { name: 'hash', type: 'VARCHAR', nullOrNot: 'NOT NULL', key: undefined },
             { name: 'salt', type: 'VARCHAR', nullOrNot: 'NOT NULL', key: undefined },
             { name: 'type', type: 'VARCHAR', nullOrNot: 'NOT NULL', key: undefined },
-            { name: 'mdp_mis_a_jour', type: 'INTEGER', nullOrNot: 'NOT NULL', key: undefined }
+            { name: 'mdp_mis_a_jour', type: 'INTEGER', nullOrNot: 'NOT NULL', key: undefined },
+            { name: 'statut', type: 'VARCHAR', nullOrNot: 'NOT NULL', key: undefined }
         ],
         admins: [
             { name: 'id', type: 'BIGSERIAL', nullOrNot: 'NOT NULL', key: 'PRIMARY KEY' },
@@ -64,7 +65,7 @@ const SETTINGS = {
         ]
     },
     tablesColumns: {
-        utilisateurs: '(nom, prenom, email, hash, salt, type, mdp_mis_a_jour)',
+        utilisateurs: '(nom, prenom, email, hash, salt, type, mdp_mis_a_jour, statut)',
         admins: '(id_utilisateur, nom, prenom, email, hash, salt, mdp_mis_a_jour)',
         partenaires: '(id_utilisateur, nom, prenom, email, adresse, code_postal, ville, description, statut_acces_donnees, hash, salt, timestamp_creation, statut)',
         structures: '(id_partenaire, id_utilisateur, nom_gerant, prenom_gerant, email_partenaire, email_gerant, adresse, code_postal, ville, description, hash, salt, timestamp_creation, statut)',
