@@ -1,11 +1,9 @@
-import servicesManager from "../services/servicesManager.js";
+import servicesManager from "../services/servicesManager.js"
 
 const controller = {
-
     post: async (req, res) => {
-
         try {
-            const response = await servicesManager.login(req.body);
+            const response = await servicesManager.data(req.body);
             res.send(response)
         } catch (error) {
             res.status(401)
@@ -15,4 +13,4 @@ const controller = {
     }
 }
 
-export default controller;
+export default controller

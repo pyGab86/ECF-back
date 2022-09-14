@@ -12,7 +12,6 @@ dotenv.config()
 class DB {
 
     constructor () {
-        console.log('DB init')
         this.client = new Client({
             password: process.env.PG_PASSWORD,
             database: process.env.PG_DB,

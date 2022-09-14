@@ -1,9 +1,8 @@
 import { passwordHash, passwordVerify } from 'nodejs-password';
 
-
+// Generer un 'salt' et un hash depuis le mdp
 const encrypt = async (password) => {
 
-    // Generer un 'salt' et un hash depuis le mdp
     const salt = Math.random().toString(36).substr(2, 10);
     const hash = await passwordHash(password, salt);
     return { hash, salt }
@@ -14,8 +13,6 @@ const encrypt = async (password) => {
 const checkPassword = (password, hash, salt) => {
     return passwordVerify(password, hash, salt)
 }
-
-
 
 /* Vérifier que le mdp est assez fort
     - au moins 8 charactères

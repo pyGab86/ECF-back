@@ -70,6 +70,16 @@ const SETTINGS = {
         partenaires: '(id_utilisateur, nom, prenom, email, adresse, code_postal, ville, description, statut_acces_donnees, hash, salt, timestamp_creation, statut)',
         structures: '(id_partenaire, id_utilisateur, nom_gerant, prenom_gerant, email_partenaire, email_gerant, adresse, code_postal, ville, description, hash, salt, timestamp_creation, statut)',
         permissions: '(id_partenaire, id_structure, gestion_planning_team, vente_boissons, vente_barres, emailing)'
+    },
+    droitsRoutes: {
+        '/api/data': {
+            partenaire: ['read'],
+            structure: ['read'],
+        },
+        '/api/action': {
+            partenaire: ['data-access-status'],
+            structure: []
+        }
     }
 }
 

@@ -1,37 +1,33 @@
 import jsonwebtoken from 'jsonwebtoken';
 
 
-const authenticateToken = (req, res, next) => {
+const authenticateToken = (req) => {
 
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-        return res.send({success: false, reason: 'invalid-token'});
+        return false;
     }
 
-    jsonwebtoken.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+    return jsonwebtoken.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
 
         if (err) {
-            return res.send({success: false, reason: 'invalid-token'});
+            return false;
         }
 
-        // Make sure that user can not simply change the local storage uid
-        // to access content that he is not invited to or not allowed to see
-        // by comparing the requesting uid to the one in the token. 
-        if (req.body.uid != undefined) {
-            if (req.body.uid != user.uid) {
-                return res.send({success: false, reason: 'unauthorized user'});
+        if (req.body.uid != undefined && req.body.type != undefined) {
+            if (req.body.uid != user.email || req.body.type != user.type) {
+                return false;
             }
         } else if (req.params.uid != undefined) {
-            if (req.params.uid.slice(1) != user.uid) {
-                return res.send({success: false, reason: 'unauthorized user'});
+            if (req.params.uid.slice(1) != user.email || req.params.slice(1) != user.type) {
+                return false;
             }
         }
 
         req.user = user;
-        next();
-
+        return true
     });
 
 }
@@ -41,28 +37,27 @@ const authenticateRefreshToken = (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-        return res.send({success: false, reason: 'invalid-token'});
+        res.send({ success: false, reason: 'could not find token' })
     }
 
-    jsonwebtoken.verify(token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
+    return jsonwebtoken.verify(token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
 
         if (err) {
-            return res.send({success: false, reason: 'invalid-token'});
+            res.send({ success: false, reason: 'could not verify token' })
         }
 
-        if (req.body.uid != undefined) {
-            if (req.body.uid != user.uid) {
-                return res.send({success: false, reason: 'unauthorized user'});
+        if (req.body.uid != undefined && req.body.type != undefined) {
+            if (req.body.uid != user.email || req.body.type != user.type) {
+                res.send({ success: false, reason: 'could not verify token' });
             }
         } else if (req.params.uid != undefined) {
-            if (req.params.uid.slice(1) != user.uid) {
-                return res.send({success: false, reason: 'unauthorized user'});
+            if (req.params.uid.slice(1) != user.email || req.params.slice(1) != user.type) {
+                res.send({ success: false, reason: 'could not verify token' })
             }
         }
 
         req.user = user;
-        next();
-
+        next()
     });
 }
 
