@@ -160,6 +160,8 @@ class DB {
                 }
             }
 
+            queryText += ' RETURNING *'
+
             if (verbose) {
                 console.log(queryText)
             }
@@ -168,7 +170,7 @@ class DB {
                 text: queryText,
                 values: queryValues
             })
-            .then(res => { return { success: true, id: res.rowCount } })
+            .then(res => { return { success: true, id: parseInt(res.rows[0].id) } })
             .catch(err => { return { success: false, reason: err } })
 
         } else {

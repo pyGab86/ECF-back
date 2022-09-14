@@ -7,6 +7,7 @@ import bodyParser from 'body-parser'
 import login from './routes/login.js'
 import refreshToken from './routes/refreshToken.js'
 import data from './routes/data.js'
+import action from './routes/action.js'
 
 dotenv.config()
 
@@ -34,6 +35,7 @@ app.use(cors())
 app.use('/', login)
 app.use('/', refreshToken)
 app.use('/', data)
+app.use('/', action)
 
 app.listen(port, () => {
     console.log(`L'application tourne sur le port ${ port }`);

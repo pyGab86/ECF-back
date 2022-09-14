@@ -1,5 +1,5 @@
 import SETTINGS from "../SETTINGS.js"
-import { authenticateToken, authenticateRefreshToken } from "./authenticateToken.js"
+import { authenticateToken } from "./authenticateToken.js"
 
 // Au login, on génère la token avec l'email, le mdp et le type d'utilisateur (admin, partenaire ou structure)
 // Ainsi, en authentifiant la token, on peut vérifier de quel type d'utilisateur il s'agit
