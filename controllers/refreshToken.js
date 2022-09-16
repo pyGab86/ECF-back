@@ -3,7 +3,6 @@ import { genToken } from "../security/tokenGeneration.js";
 const controller = {
     
     post: (req, res) => {
-        console.log('refresh controller')
         try {
             res.send({
                 success: true,

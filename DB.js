@@ -105,17 +105,20 @@ class DB {
             
             if (typeof columns === "undefined" || columns.length === 0) {
                 queryText += ' *'
+            } else {
+                for (let i = 0; i < columns.length; i++) {
+                    queryText += ` ${columns[i]}`
+                    if (i + 1 < columns.length) {
+                        queryText += ', '
+                    }
+                }
             }
 
             queryText += ` FROM ${tableName}`
 
             if (typeof filters === 'object') {
-                if (typeof filters.where === 'object') {
-                    queryText += ` ${filters.where.string}`
-                    
-                    for (let i = 0; i < filters.where.values.length; i++) {
-                        queryValues.push(filters.where.values[i])
-                    }
+                if (typeof filters.where === 'string') {
+                    queryText += ` ${filters.where}`
                 }
             }
 
@@ -143,7 +146,6 @@ class DB {
     // On insert une ligne dans une table. Pour gagner en simplicité et en performance, 
     // on charge les colonnes depuis les settings pour ne pas avoir à les reconstruire
     insert = async (tableName, values, verbose=false) => {
-
         if (this.tables.includes(tableName)) {
 
             let queryText = `INSERT INTO ${tableName} ${SETTINGS.tablesColumns[tableName]} VALUES(`
@@ -163,7 +165,7 @@ class DB {
             queryText += ' RETURNING *'
 
             if (verbose) {
-                console.log(queryText)
+                console.log(queryText, queryValues)
             }
             
             return this.client.query({
@@ -176,7 +178,6 @@ class DB {
         } else {
             return { success: false }
         }
-
     }
 
     // Modifier une ligne (une ou plusieurs colonnes) dans une table
