@@ -8,9 +8,10 @@ const data = async (body) => {
         case 'partenaires':
             // On ne retourne pas toutes les colonnes de la ligne par sécurité
             return db.read('partenaires', ['id', 'prenom', 'nom', 'email', 'adresse', 'code_postal', 'ville', 
-                'description', 'statut_acces_donnees', 'timestamp_creation', 'statut'], undefined, false)
+            'description', 'statut_acces_donnees', 'timestamp_creation', 'statut'], undefined, false)
                 .then(res => { return { success: true, data: res.res.rows } })
                 .catch(err => { return { success: false, error: err } })
+            
 
         // Récupérer toutes les infos d'un partenaire (dont ses permissions)
         case 'partenaire':
@@ -41,11 +42,6 @@ const data = async (body) => {
                 .then(res => { return { success: true, data: res.res.rows } })
                 .catch(err => { return { success: false, error: err } })
 
-            } else if (body.options.from === 'search') {
-                return db.read('structures', columns, undefined, false)
-                .then(res => { return { success: true, data: res.res.rows } })
-                .catch(err => { return { success: false, error: err } })
-
             } else {
                 return { success: false, reason: 'wrong options passed' }
             }
@@ -72,6 +68,76 @@ const data = async (body) => {
                 return { success: false, reason: 'wrong options passed' }
             }
         
+        // Faire un search sur les partenaires et structures par le nom
+        case 'search':
+            console.log(body)
+            const partenairesSearch = await db.read('partenaires',
+                ['nom', 'prenom', 'email', 'id', 'ville'], 
+                { where: 
+                    `WHERE nom LIKE '${body.options.name}%'`
+                },
+                true
+            )
+
+            const structuresSearch = await db.read('structures',
+                ['nom_gerant', 'prenom_gerant', 'email_gerant', 'id', 'ville'], 
+                { where: 
+                    `WHERE nom_gerant LIKE '${body.options.name}%'`
+                },
+                true
+            )
+
+            if (partenairesSearch.success && structuresSearch.success) {
+                return {
+                    success: true,
+                    data: {
+                        partenaires: partenairesSearch.res.rows,
+                        structures: structuresSearch.res.rows
+                    }
+                }
+            } else {
+                if (!partenairesSearch.success && !structuresSearch.success) {
+                    return { success: false, reason: 'could not make research' }
+                } else if (partenairesSearch.success) {
+                    return {
+                        success: true,
+                        partenaires: partenairesSearch.res.rows,
+                        structures: 'error'
+                    }
+                } else {
+                    return {
+                        success: true,
+                        partenaires: 'error',
+                        structures: structuresSearch.res.rows
+                    }
+                }
+            }
+
+        // Uniquement pour les partenaires connectés.
+        // Ils ne peuvent rechercher que des structures qui leur
+        case 'search-structures':
+            console.log(body)
+
+            const structuresSearch_ = await db.read('structures',
+                ['nom_gerant', 'prenom_gerant', 'email_gerant', 'id', 'ville'], 
+                { where: 
+                    `WHERE nom_gerant LIKE '${body.options.name}%'
+                    AND email_partenaire = ${body.options.email}`
+                },
+                true
+            )
+
+            if (structuresSearch_.success) {
+                return {
+                    success: true,
+                    data: {
+                        structures: structuresSearch_.res.rows
+                    }
+                }
+            } else {
+                return { success: false, reason: 'could not make research' }
+            }
+
         default:
             return { success: false, reason: 'unknown data request' }
     }

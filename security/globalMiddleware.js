@@ -17,11 +17,21 @@ const globalMiddleware = async (req, res, next) => {
             if (typeof routePermissions === "undefined") {
                 res.send({ success: false, reason: 'missing permissions' })
             } else {
-                if (routePermissions.includes(req.body.requested)) {
-                    console.log(routePermissions, 'next()')
-                    next()
-                } else {
-                    res.send({ success: false, reason: 'missing permissions' })
+
+                if (req.route.path === '/api/data') {
+                    if (routePermissions.includes(req.body.requested)) {
+                        console.log(routePermissions, 'next()')
+                        next()
+                    } else {
+                        res.send({ success: false, reason: 'missing permissions' })
+                    }
+                } else if (req.route.path === '/api/action') {
+                    if (routePermissions.includes(req.body.action)) {
+                        console.log(routePermissions, 'next()')
+                        next()
+                    } else {
+                        res.send({ success: false, reason: 'missing permissions' })
+                    }
                 }
             }
 
