@@ -63,29 +63,24 @@ const action = async (body) => {
             ])
 
             if (structureUser.success) {
-                console.log('création utilisateur:', structureUser)
+
                 const creationStructure = await db.insert('structures', [
                     body.structure.id_partenaire, structureUser.id, body.structure.nom_gerant, 
                     body.structure.prenom_gerant, body.structure.email_partenaire, body.structure.email_gerant, 
                     body.structure.adresse, body.structure.code_postal, body.structure.ville, body.structure.description, 
                     encryptedPassword_.hash, encryptedPassword_.salt, timestamp, 'inactif'
                 ], false)
-
-                console.log('création structure:', creationStructure)
     
                 if (creationStructure.success) {
 
                     const permissionsStructure = await db.insert('permissions', [
                         -1, creationStructure.id, body.structure.planning, body.structure.boissons, body.structure.barres,
                         body.structure.emailing
-                    ], true)
-
-                    console.log('création permissions:', permissionsStructure)
+                    ], false)
 
                     if (permissionsStructure.success) {
                         return { success: true }
                     } else {
-                        console.log(permissionsStructure)
                         return { success: false, reason: 'could not create permissions of structure' }
                     }
                 } else {
@@ -93,6 +88,121 @@ const action = async (body) => {
                 }
             } else {
                 return { success: false, reason: 'could not create user' }
+            }
+
+        // Modifier une permission (partenaire ou structure)
+        // On note qu'une permission partenaire est une permission globale.
+        // Donc si on modifie une permission partenaire, toutes les structures de ce partenaire
+        // Doivent avoir la permission réglée sur la même valeur globale
+        case 'change_permission':
+            
+            if (body.options.of === 'partenaire' || body.options.of === 'structure') {
+                if (body.options.permission === 'gestion_planning_team' ||
+                    body.options.permission === 'vente_boissons' ||
+                    body.options.permission === 'vente_barres' ||
+                    body.options.permission === 'emailing'
+                ) {
+                    if (typeof body.options.current === 'boolean' && typeof body.options.id === 'number') {
+
+                        if (body.options.of === 'structure') {
+                            const editPermission = await db.edit('permissions', 
+                                [body.options.permission], [body.options.current],
+                                `WHERE id_structure = ${body.options.id}`
+                            )
+                            return { success: editPermission.success }
+
+                        } else {
+                            // 1. Changer la permission globale
+                            // 2. Récupérer les ids de toutes les structures du partenaire
+                            // 3. Pour chacune de ces structures, changer la permission.
+                            const globalRes = await db.edit('permissions',
+                                [body.options.permission], [body.options.current],
+                                `WHERE id_partenaire = ${body.options.id}`, true
+                            )
+                            
+                            if (globalRes.success) {
+
+                                const partenaireStructures = await db.read('structures', ['id'],
+                                    { where: `WHERE id_partenaire = ${body.options.id}`}
+                                )
+
+                                if (partenaireStructures.success) {
+                                    let successCount = 0
+                                    let failCount = 0
+                                    for (let i = 0; i < partenaireStructures.res.rows.length; i++) {
+                                        const structureId = partenaireStructures.res.rows[i].id
+                                        const structurePermissionEdit = await db.edit(
+                                            'permissions', [body.options.permission], [body.options.current],
+                                            `WHERE id_structure = ${structureId}`
+                                        )
+
+                                        if (structurePermissionEdit.success) {
+                                            successCount++
+                                        } else {
+                                            failCount++
+                                        }
+                                    }
+
+                                    if (failCount === 0) {
+                                        return { success: true }
+                                    } else {
+                                        if (successCount === 0) {
+                                            return { success: false, reason: 'could not update strutures permissions from global' }
+                                        } else {
+                                            return { success: true }
+                                        }
+                                    }
+                                    
+                                } else {
+                                    return { success: false, reason: 'could not get structures of partner' }
+                                }
+
+                            } else {
+                                return { success: false, reason: 'could not change global permission' }
+                            }
+                        }
+
+                    } else {
+                        return { success: false, reason: 'wrong options passed' }
+                    }
+                } else {
+                    return { success: false, reason: 'wrong options passed' }
+                }
+            } else {
+                return { success: false, reason: 'wrong options passed' }
+            }
+
+        // Modifier statut partenaire ou structure
+        case 'change_statut':
+            if (body.options.of === 'partenaire' || body.options.of === 'structure') {
+
+                if (typeof body.options.id === 'number'){
+
+                    let newStatus = 'actif'
+                    if (body.options.current === 'actif') {
+                        newStatus = 'inactif'
+                    }
+                    
+                    const editRes = await db.edit(
+                        `${body.options.of}s`,
+                        ['statut'], [newStatus],
+                        `WHERE id = ${body.options.id}`, true
+                    )
+
+                    console.log(editRes)
+                    
+                    if (editRes.success) {
+                        return { success: true, newStatus }
+                    } else {
+                        return { success: false, reason: 'could not change statut' }
+                    }
+
+                } else {
+                    return { success: false, reason: 'wrong options passed' }
+                }
+
+            } else {
+                return { success: false, reason: 'wrong options passed' }
             }
 
         default:

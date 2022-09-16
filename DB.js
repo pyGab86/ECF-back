@@ -202,7 +202,7 @@ class DB {
             queryText += ` ${where}`
 
             if (verbose) {
-                console.log(queryText)
+                console.log(queryText, queryValues)
             }
 
             return this.client.query({
