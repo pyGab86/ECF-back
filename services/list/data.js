@@ -114,9 +114,8 @@ const data = async (body) => {
             }
 
         // Uniquement pour les partenaires connectés.
-        // Ils ne peuvent rechercher que des structures qui leur
+        // Ils ne peuvent rechercher que des structures leur appartenant
         case 'search-structures':
-            console.log(body)
 
             const structuresSearch_ = await db.read('structures',
                 ['nom_gerant', 'prenom_gerant', 'email_gerant', 'id', 'ville'], 

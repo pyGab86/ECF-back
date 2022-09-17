@@ -1,5 +1,6 @@
 import db from "../../DB.js";
 import { encrypt } from "../../security/passwordManagement.js";
+import sendEmail from "../email.js";
 
 // Pas besoin de vérifier les user input : les inserts sont des requêtes préparées et
 // validées ou non par pg
@@ -36,6 +37,14 @@ const action = async (body) => {
                     ])
 
                     if (creationPermissions.success) {
+                        // Envoyer un email automatique
+                        sendEmail(body.utilisateur.email, 'creation', '', {
+                            toCreate: 'partenaire',
+                            nom: body.utilisateur.nom,
+                            prenom: body.utilisateur.prenom,
+                            email: body.utilisateur.email,
+                            password: userPassword
+                        })
                         // retourne l'objet créé pour affichage
                         return { success: true }
                     } else {
@@ -79,6 +88,14 @@ const action = async (body) => {
                     ], false)
 
                     if (permissionsStructure.success) {
+                        // Envoyer un email automatique
+                        sendEmail(body.utilisateur.email_gerant, 'creation', '', {
+                            toCreate: 'structure',
+                            nom: body.utilisateur.nom_gerant,
+                            prenom: body.utilisateur.prenom_gerant,
+                            email: body.utilisateur.email_gerant,
+                            password: userPassword_
+                        })
                         return { success: true }
                     } else {
                         return { success: false, reason: 'could not create permissions of structure' }
@@ -103,12 +120,26 @@ const action = async (body) => {
                     body.options.permission === 'emailing'
                 ) {
                     if (typeof body.options.current === 'boolean' && typeof body.options.id === 'number') {
-
                         if (body.options.of === 'structure') {
+
                             const editPermission = await db.edit('permissions', 
                                 [body.options.permission], [body.options.current],
                                 `WHERE id_structure = ${body.options.id}`
                             )
+
+                            if (editPermission.success) {
+                                setTimeout(() => {
+                                    sendEmail(body.options.email, 'permission', '', {
+                                        permissionType: 'de structure',
+                                        permission: body.options.permission,
+                                        permissionStatus: body.options.current,
+                                        nom: body.options.nom,
+                                        prenom: body.options.prenom,
+                                        email: body.options.email
+                                    })
+                                }, 200)
+                            }
+
                             return { success: editPermission.success }
 
                         } else {
@@ -119,10 +150,21 @@ const action = async (body) => {
                                 [body.options.permission], [body.options.current],
                                 `WHERE id_partenaire = ${body.options.id}`, true
                             )
-                            
+
                             if (globalRes.success) {
 
-                                const partenaireStructures = await db.read('structures', ['id'],
+                                setTimeout(() => {
+                                    sendEmail(body.options.email, 'permission', '', {
+                                        permissionType: 'globales de partenaire',
+                                        permission: body.options.permission,
+                                        permissionStatus: body.options.current,
+                                        nom: body.options.nom,
+                                        prenom: body.options.prenom,
+                                        email: body.options.email
+                                    })
+                                }, 200)
+
+                                const partenaireStructures = await db.read('structures', undefined,
                                     { where: `WHERE id_partenaire = ${body.options.id}`}
                                 )
 
@@ -130,11 +172,25 @@ const action = async (body) => {
                                     let successCount = 0
                                     let failCount = 0
                                     for (let i = 0; i < partenaireStructures.res.rows.length; i++) {
-                                        const structureId = partenaireStructures.res.rows[i].id
+                                        const structure = partenaireStructures.res.rows[i]
+                                        const structureId = structure.id
                                         const structurePermissionEdit = await db.edit(
                                             'permissions', [body.options.permission], [body.options.current],
                                             `WHERE id_structure = ${structureId}`
                                         )
+
+                                        // Notifier toutes les structures du changement de permisison 
+                                        // induit par une modification de permission globale (permission partenaire)
+                                        setTimeout(() => {
+                                            sendEmail(structure.email_gerant, 'permission', '', {
+                                                permissionType: 'de structure suite à une modification de permission globale du partenaire',
+                                                permission: body.options.permission,
+                                                permissionStatus: body.options.current,
+                                                nom: structure.nom_gerant,
+                                                prenom: structure.prenom_gerant,
+                                                email: structure.email_gerant
+                                            })
+                                        }, 200)
 
                                         if (structurePermissionEdit.success) {
                                             successCount++
@@ -188,10 +244,17 @@ const action = async (body) => {
                         ['statut'], [newStatus],
                         `WHERE id = ${body.options.id}`, true
                     )
-
-                    console.log(editRes)
                     
                     if (editRes.success) {
+
+                        setTimeout(() => {
+                            sendEmail(body.options.email, 'status', '', {
+                                nom: body.options.nom,
+                                prenom: body.options.prenom,
+                                newStatus: body.options.current === 'actif' ? 'désactivé' : 'activé'
+                            })
+                        }, 200);
+
                         return { success: true, newStatus }
                     } else {
                         return { success: false, reason: 'could not change statut' }
