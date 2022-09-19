@@ -12,8 +12,7 @@ const data = async (body) => {
                 .then(res => { return { success: true, data: res.res.rows } })
                 .catch(err => { return { success: false, error: err } })
             
-
-        // Récupérer toutes les infos d'un partenaire (dont ses permissions)
+        // Récupérer les infos d'un partenaire
         case 'partenaire':
             // Vérifier que l'id est bien un numbre pour éviter une injection sql
             if (typeof body.options.id === 'number') {
@@ -26,6 +25,19 @@ const data = async (body) => {
             } else {
                 return { success: false, reason: 'wrong options passed' }
             }            
+
+        // Récupérer les infos partenaire (en tant que partenaire)
+        case 'self-partenaire':
+                return db.read('partenaires', ['id', 'prenom', 'nom', 'email', 'adresse', 'code_postal', 'ville', 
+                'description', 'statut_acces_donnees', 'timestamp_creation', 'statut'],
+                { where: `WHERE email = $1`, values: [body.options.email] }, true
+            )
+            .then(res => {
+                return { success: true, data: res.res.rows }
+            })
+            .catch(err => {
+                return { success: false, error: err }
+            })
 
         // Récupérer les structures
         case 'structures':
@@ -46,6 +58,17 @@ const data = async (body) => {
                 return { success: false, reason: 'wrong options passed' }
             }
 
+        // Récupérer les structures (en tant que structure)
+        case 'self-structures':
+            const columns_ = ['id', 'id_partenaire', 'id_utilisateur', 'nom_gerant', 'prenom_gerant',
+            'email_partenaire', 'email_gerant', 'adresse', 'code_postal', 'ville', 'description',
+            'timestamp_creation', 'statut']
+
+            return db.read('structures', columns_, { where: `WHERE email_partenaire = $1`, values: [body.options.email] }, true)
+                .then(res => { return { success: true, data: res.res.rows } })
+                .catch(err => { return { success: false, error: err } })
+
+
         // Récupérer les infos d'une structure en particulier (avec ses permissions)
         case 'structure':
             // On ne retourne pas toutes les colonnes de la ligne par sécurité
@@ -62,6 +85,17 @@ const data = async (body) => {
             // Récupérer les permissions d'un partenaire ou d'une structure
             if ((typeof body.options.id === 'number' && body.options.of === 'partenaire') || (typeof body.options.id === 'number' && body.options.of === 'structure')) {
                 return db.read('permissions', undefined, { where: `WHERE id_${body.options.of} = ${body.options.id}` })
+                    .then(res => { return { success: true, data: res.res.rows }})
+                    .catch(err => { return { success: false, error: err } })
+            } else {
+                return { success: false, reason: 'wrong options passed' }
+            }
+
+        // Récupération des permissions pour un user de type partenaire ou structure
+        case 'self-permissions':
+            if ((typeof body.options.id === 'number' && body.options.of === 'partenaire') 
+                || (typeof body.options.id === 'number' && body.options.of === 'structure')) {
+                return db.read('permissions', undefined, { where: `WHERE id_${body.options.of} = $1`, values: [body.options.id] }, true)
                     .then(res => { return { success: true, data: res.res.rows }})
                     .catch(err => { return { success: false, error: err } })
             } else {

@@ -120,6 +120,12 @@ class DB {
                 if (typeof filters.where === 'string') {
                     queryText += ` ${filters.where}`
                 }
+
+                if (typeof filters.values === 'object') {
+                    for (let i = 0; i < filters.values.length; i++) {
+                        queryValues.push(filters.values[i])
+                    }
+                }
             }
 
             if (verbose) {

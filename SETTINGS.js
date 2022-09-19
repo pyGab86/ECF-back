@@ -73,11 +73,11 @@ const SETTINGS = {
     },
     droitsRoutes: {
         '/api/data': {
-            partenaire: ['partenaire', 'structures', 'permissions', 'search-structures'],
+            partenaire: ['self-partenaire', 'self-structures', 'self-permissions', 'search-structures'],
             structure: ['structure', 'permissions'],
         },
         '/api/action': {
-            partenaire: ['data-access-status'],
+            partenaire: ['data-access-status', 'change_password'],
             structure: []
         }
     }

@@ -14,12 +14,12 @@ const login = async (body) => {
     const password = body.password
     const email = body.email
 
-    return db.read('utilisateurs', undefined, { where: { string: 'WHERE email = $1', values: [email] } }, false)
+    return db.read('utilisateurs', undefined, { where: 'WHERE email = $1', values: [email] }, true)
     .then(async (res) => {
         if (res.success) {
             const user = res.res.rows[0]
             const correctIds = await checkPassword(password, user.hash, user.salt)
-            
+
             if (correctIds) {
 
                 // Générer une token et refresh token
@@ -36,13 +36,31 @@ const login = async (body) => {
                     }
                 } else {
                     if (user.statut === "actif") {
-                        return {
-                            success: true,
-                            needsNewPassword: user.mdp_mis_a_jour,
-                            type: user.type,
-                            token,
-                            refresh
+
+                        if (user.type === 'partenaire') {
+                            let id = await db.read('partenaires', ['id'], { where: `WHERE email = $1`, values: [user.email] })
+                            id = parseInt(id.res.rows[0].id)
+                            return {
+                                success: true,
+                                needsNewPassword: user.mdp_mis_a_jour === 0 ? true : false,
+                                type: user.type,
+                                token,
+                                refresh,
+                                id
+                            }
+                        } else {
+                            id = await db.read('structures', ['id'], { where: `WHERE email_gerant = $1`, values: [user.email_gerant] })
+                            id = parseInt(id.res.rows[0].id)
+                            return {
+                                success: true,
+                                needsNewPassword: user.mdp_mis_a_jour === 0 ? true : false,
+                                type: user.type,
+                                token,
+                                refresh,
+                                id
+                            }
                         }
+                        
                     } else {
                         return {
                             success: false

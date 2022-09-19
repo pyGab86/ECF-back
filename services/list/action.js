@@ -244,18 +244,58 @@ const action = async (body) => {
                         ['statut'], [newStatus],
                         `WHERE id = ${body.options.id}`, true
                     )
-                    
+
                     if (editRes.success) {
 
-                        setTimeout(() => {
-                            sendEmail(body.options.email, 'status', '', {
-                                nom: body.options.nom,
-                                prenom: body.options.prenom,
-                                newStatus: body.options.current === 'actif' ? 'désactivé' : 'activé'
-                            })
-                        }, 200);
+                        // Changer le statut de l'utilisateur également (utilisé pour le login)
+                        // 1. Récupérer id_utilisateur (table partenaires ou structure)
+                        // 2. Faire un update du statut de utilisateur avec where id = id_utilisateur
+                        const table = `${body.options.of}s`
 
-                        return { success: true, newStatus }
+                        const idPertanireRes = await db.read(table, ['id_utilisateur'], {
+                            where: `WHERE id = ${body.options.id}`
+                        }, true)
+
+                        if (idPertanireRes.success) {
+                            const idUtilisateur = idPertanireRes.res.rows[0].id_utilisateur
+
+                            const updateUser = await db.edit('utilisateurs', ['statut'], [newStatus],
+                                `WHERE id = ${idUtilisateur}`, true
+                            )
+
+                            if (updateUser.success) {
+                                setTimeout(() => {
+                                    sendEmail(body.options.email, 'statut', '', {
+                                        nom: body.options.nom,
+                                        prenom: body.options.prenom,
+                                        newStatus: body.options.current === 'actif' ? 'désactivé' : 'activé'
+                                    })
+                                }, 200);
+        
+                                return { success: true, newStatus }
+
+                            } else {
+
+                                // En cas d'erreur, revenir à l'ancienne valeur
+                                db.edit(
+                                    `${body.options.of}s`,
+                                    ['statut'], [newStatus === 'actif' ? 'inactif' : 'actif'],
+                                    `WHERE id = ${body.options.id}`, true
+                                )
+                                return { success: false, reason: 'could not change statut' }
+                            }
+
+                        } else {
+
+                            // En cas d'erreur, revenir à l'ancienne valeur
+                            db.edit(
+                                `${body.options.of}s`,
+                                ['statut'], [newStatus === 'actif' ? 'inactif' : 'actif'],
+                                `WHERE id = ${body.options.id}`, true
+                            )
+                            return { success: false, reason: 'could not change statut' }
+                        }
+
                     } else {
                         return { success: false, reason: 'could not change statut' }
                     }
@@ -268,6 +308,47 @@ const action = async (body) => {
                 return { success: false, reason: 'wrong options passed' }
             }
 
+        // Changer mot de passe (partenaire / structure)
+        case 'change_password':
+            
+            // If partenaire : changer mdp partenaire ET utilisateur
+            // if structure : changer mdp structure ET utilisateur
+            // On génère un nouveau hash, salt et règle mdp_mis_a_jour sur 1
+
+            const newHashSalt = await encrypt(body.options.password)
+
+            let whereColumn = 'email'
+            if (body.userData.type === 'structure') {
+                whereColumn = 'email_gerant'
+            }
+
+            const user = await db.read(`${body.userData.type}s`, undefined, {
+                where: `WHERE ${whereColumn} = $1`, values: [body.userData.email]
+            }, true)
+
+            const userId = user.res.rows[0].id_utilisateur
+
+            const userupdate = await db.edit(
+                'utilisateurs',
+                ['hash', 'salt', 'mdp_mis_a_jour'],
+                [newHashSalt.hash, newHashSalt.salt, 1],
+                `WHERE id = ${userId}`
+            )
+
+            const originUpdate = await db.edit(
+                `${body.userData.type}s`,
+                ['hash', 'salt'],
+                [newHashSalt.hash, newHashSalt.salt],
+                `WHERE id_utilisateur = ${userId}`
+            )
+
+            if (userupdate.success) {
+                return { success: true, type: body.userData.type, password:body.options.password }
+            } else {
+                return { success: false }
+            }
+            
+        
         default:
             return { success: false }
     }

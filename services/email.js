@@ -49,6 +49,7 @@ const sendEmail = async (destination, subject, message, infos=undefined) => {
                     Bien à vous
                 </p>
             `
+            break
 
         default:
             html = `<h1>Hello World</h1>`
