@@ -30,7 +30,7 @@ const data = async (body) => {
         case 'self-partenaire':
                 return db.read('partenaires', ['id', 'prenom', 'nom', 'email', 'adresse', 'code_postal', 'ville', 
                 'description', 'statut_acces_donnees', 'timestamp_creation', 'statut'],
-                { where: `WHERE email = $1`, values: [body.options.email] }, true
+                { where: `WHERE email = $1`, values: [body.options.email] }, false
             )
             .then(res => {
                 return { success: true, data: res.res.rows }
@@ -64,7 +64,7 @@ const data = async (body) => {
             'email_partenaire', 'email_gerant', 'adresse', 'code_postal', 'ville', 'description',
             'timestamp_creation', 'statut']
 
-            return db.read('structures', columns_, { where: `WHERE email_partenaire = $1`, values: [body.options.email] }, true)
+            return db.read('structures', columns_, { where: `WHERE email_partenaire = $1`, values: [body.options.email] }, false)
                 .then(res => { return { success: true, data: res.res.rows } })
                 .catch(err => { return { success: false, error: err } })
 
@@ -95,7 +95,7 @@ const data = async (body) => {
         case 'self-permissions':
             if ((typeof body.options.id === 'number' && body.options.of === 'partenaire') 
                 || (typeof body.options.id === 'number' && body.options.of === 'structure')) {
-                return db.read('permissions', undefined, { where: `WHERE id_${body.options.of} = $1`, values: [body.options.id] }, true)
+                return db.read('permissions', undefined, { where: `WHERE id_${body.options.of} = $1`, values: [body.options.id] })
                     .then(res => { return { success: true, data: res.res.rows }})
                     .catch(err => { return { success: false, error: err } })
             } else {
@@ -104,13 +104,12 @@ const data = async (body) => {
         
         // Faire un search sur les partenaires et structures par le nom
         case 'search':
-            console.log(body)
             const partenairesSearch = await db.read('partenaires',
                 ['nom', 'prenom', 'email', 'id', 'ville'], 
                 { where: 
                     `WHERE nom LIKE '${body.options.name}%'`
                 },
-                true
+                false
             )
 
             const structuresSearch = await db.read('structures',
@@ -118,7 +117,7 @@ const data = async (body) => {
                 { where: 
                     `WHERE nom_gerant LIKE '${body.options.name}%'`
                 },
-                true
+                false
             )
 
             if (partenairesSearch.success && structuresSearch.success) {
@@ -155,11 +154,11 @@ const data = async (body) => {
                 ['nom_gerant', 'prenom_gerant', 'email_gerant', 'id', 'ville'], 
                 { where: 
                     `WHERE nom_gerant LIKE '${body.options.name}%'
-                    AND email_partenaire = ${body.options.email}`
+                    AND email_partenaire = $1`, values: [body.options.email]
                 },
-                true
+                false
             )
-
+            
             if (structuresSearch_.success) {
                 return {
                     success: true,

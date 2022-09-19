@@ -14,7 +14,7 @@ const login = async (body) => {
     const password = body.password
     const email = body.email
 
-    return db.read('utilisateurs', undefined, { where: 'WHERE email = $1', values: [email] }, true)
+    return db.read('utilisateurs', undefined, { where: 'WHERE email = $1', values: [email] }, false)
     .then(async (res) => {
         if (res.success) {
             const user = res.res.rows[0]
@@ -49,7 +49,7 @@ const login = async (body) => {
                                 id
                             }
                         } else {
-                            id = await db.read('structures', ['id'], { where: `WHERE email_gerant = $1`, values: [user.email_gerant] })
+                            let id = await db.read('structures', ['id'], { where: `WHERE email_gerant = $1`, values: [user.email] })
                             id = parseInt(id.res.rows[0].id)
                             return {
                                 success: true,

@@ -89,13 +89,15 @@ const action = async (body) => {
 
                     if (permissionsStructure.success) {
                         // Envoyer un email automatique
-                        sendEmail(body.utilisateur.email_gerant, 'creation', '', {
-                            toCreate: 'structure',
-                            nom: body.utilisateur.nom_gerant,
-                            prenom: body.utilisateur.prenom_gerant,
-                            email: body.utilisateur.email_gerant,
-                            password: userPassword_
-                        })
+                        setTimeout(() => {
+                            sendEmail(body.structure.email_gerant, 'creation', '', {
+                                toCreate: 'structure',
+                                nom: body.structure.nom_gerant,
+                                prenom: body.structure.prenom_gerant,
+                                email: body.structure.email_gerant,
+                                password: userPassword_
+                            })
+                        }, 200)
                         return { success: true }
                     } else {
                         return { success: false, reason: 'could not create permissions of structure' }
@@ -232,7 +234,7 @@ const action = async (body) => {
         case 'change_statut':
             if (body.options.of === 'partenaire' || body.options.of === 'structure') {
 
-                if (typeof body.options.id === 'number'){
+                if (typeof body.options.id === 'number') {
 
                     let newStatus = 'actif'
                     if (body.options.current === 'actif') {
@@ -348,7 +350,18 @@ const action = async (body) => {
                 return { success: false }
             }
             
-        
+        // Un partenaire peut confirmer l'accès aux données
+        case 'data-access-status':
+            if (typeof body.options.id === 'number') {
+                return db.edit('partenaires', ['statut_acces_donnees'], [body.options.statut],
+                    `WHERE id = ${body.options.id}`
+                )
+                .then(res => { return { success: true } })
+                .catch(err => { return { success: false } })
+            } else {
+                return { success: false }
+            }
+
         default:
             return { success: false }
     }

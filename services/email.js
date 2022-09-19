@@ -30,7 +30,7 @@ const sendEmail = async (destination, subject, message, infos=undefined) => {
                 </h1>
                 <p>
                     ${infos.nom} ${infos.prenom}, Nous souhaitons vous informer d'un changement de permission
-                    sur votre compte. La permission ${infos.permission} est maintenant ${infos.permissionStatus}.
+                    sur votre compte. La permission ${infos.permission} est maintenant ${infos.permissionStatus ? 'active' : 'désactivée'}.
                 </p>
                 <p>
                     Bien à vous
