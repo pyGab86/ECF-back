@@ -17,7 +17,8 @@ class DB {
             database: process.env.PG_DB,
             user: process.env.PG_USER,
             host: process.env.PG_HOST,
-            port: process.env.PG_PORT
+            port: process.env.PG_PORT,
+            ssl: true
         })
 
         this.tables = ['utilisateurs', 'admins', 'partenaires', 'structures', 'permissions']
