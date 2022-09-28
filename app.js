@@ -22,10 +22,7 @@ const app = express()
 // Configuration de sécurité
 app.use(helmet())
 
-app.use(cors({
-    origin: 'https://ecf-front.herokuapp.com',
-    optionsSuccessStatus: 200
-}))
+app.use(cors())
 
 const limiter = rateLimit({
     windowMs: 60000,
