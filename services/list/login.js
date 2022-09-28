@@ -14,17 +14,23 @@ const login = async (body) => {
     const password = body.password
     const email = body.email
 
+    console.log(body)
+
     return db.read('utilisateurs', undefined, { where: 'WHERE email = $1', values: [email] }, false)
     .then(async (res) => {
         if (res.success) {
             const user = res.res.rows[0]
             const correctIds = await checkPassword(password, user.hash, user.salt)
 
+            console.log(correctIds)
+
             if (correctIds) {
 
                 // Générer une token et refresh token
                 const token = genToken({ email, password, type: user.type })
                 const refresh = genRefreshToken({ email, password, type: user.type })
+
+                console.log(token)
 
                 if (user.type === 'admin') {
                     return {
